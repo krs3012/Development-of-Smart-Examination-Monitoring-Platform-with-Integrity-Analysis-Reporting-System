@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ExamGuard - Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .card { background: white; padding: 30px 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 420px; text-align: center; }
+        h2 { color: #2c3e50; }
+        .status { display: inline-block; padding: 6px 16px; border-radius: 20px; font-weight: bold; margin: 15px 0; }
+        .not_started { background: #eee; color: #555; }
+        .in_progress { background: #d4edda; color: #155724; }
+        .paused { background: #fff3cd; color: #856404; }
+        .submitted { background: #d1ecf1; color: #0c5460; }
+        a.btn { display: block; margin: 8px 0; padding: 10px; background: #2c7be5; color: white; text-decoration: none; border-radius: 5px; }
+        a.logout { background: #c0392b; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Welcome, {{ name }}</h2>
+        <p>Current session status:</p>
+        <span class="status {{ status }}">{{ status.replace('_', ' ').title() }}</span>
+
+        {% if status == 'not_started' or status == 'paused' %}
+            <a class="btn" href="/session/start">Start Exam</a>
+        {% endif %}
+        {% if status == 'in_progress' %}
+            <a class="btn" href="/session/pause">Pause Exam</a>
+            <a class="btn" href="/session/submit">Submit Exam</a>
+        {% endif %}
+
+        {% if status == 'submitted' %}
+            <p>Your exam has been submitted. Thank you!</p>
+
+            {% if score_info and score_info.score is not none %}
+            <div style="text-align:left; background:#f8f9fa; padding:15px; border-radius:6px; margin-top:15px; font-size:14px;">
+                <b>Integrity Score (Milestone 3)</b>
+                <div style="display:flex; align-items:center; gap:12px; margin:10px 0;">
+                    <div style="font-size:28px; font-weight:bold; color:{{ '#155724' if score_info.risk_level == 'Low' else ('#856404' if score_info.risk_level == 'Medium' else '#c0392b') }};">
+                        {{ score_info.score }}/100
+                    </div>
+                    <span style="padding:4px 12px; border-radius:20px; font-size:12px; font-weight:bold;
+                        background:{{ '#d4edda' if score_info.risk_level == 'Low' else ('#fff3cd' if score_info.risk_level == 'Medium' else '#f8d7da') }};
+                        color:{{ '#155724' if score_info.risk_level == 'Low' else ('#856404' if score_info.risk_level == 'Medium' else '#c0392b') }};">
+                        {{ score_info.risk_level }} Risk
+                    </span>
+                </div>
+                <p style="line-height:1.5;">{{ score_info.ai_report }}</p>
+            </div>
+            {% endif %}
+
+            {% if summary %}
+            <div style="text-align:left; background:#f8f9fa; padding:15px; border-radius:6px; margin-top:15px; font-size:14px;">
+                <b>Session Integrity Summary (Milestone 2)</b>
+                <ul>
+                    <li>Tab switches: {{ summary.tab_switch_count }}</li>
+                    <li>Focus loss events: {{ summary.focus_loss_count }}</li>
+                    <li>Total face-absent time: {{ summary.total_face_absent_seconds }} seconds</li>
+                </ul>
+                {% if summary.is_suspicious %}
+                    <p style="color:#c0392b;"><b>⚠ Flagged for review:</b></p>
+                    <ul style="color:#c0392b;">
+                        {% for flag in summary.flags %}
+                            <li>{{ flag }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p style="color:#155724;">No integrity flags raised for this session.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <a class="btn" href="/report/{{ exam_session_id }}" style="background:#d35400;">View My Full Report</a>
+        {% endif %}
+
+        <a class="btn logout" href="/logout">Logout</a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ExamGuard - Exam In Progress</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 0; }
+        .top-bar { background: #2c3e50; color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .top-bar .right { display: flex; align-items: center; gap: 12px; }
+        .badge { background: #c0392b; padding: 4px 12px; border-radius: 20px; font-size: 13px; }
+        .warning-counter { background: #f39c12; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+
+        .face-banner { display: none; background: #c0392b; color: white; text-align: center; padding: 10px; font-weight: bold; font-size: 14px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 50% { background: #e74c3c; } }
+
+        .container { display: flex; gap: 20px; padding: 20px 30px; max-width: 1200px; margin: 0 auto; }
+        .video-panel { flex: 0 0 320px; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; height: fit-content; }
+        .video-panel img { width: 100%; border-radius: 8px; background: #000; display: block; }
+        .video-panel p { font-size: 12px; color: #555; margin-top: 8px; }
+        .rec-dot { display: inline-block; width: 8px; height: 8px; background: #e74c3c; border-radius: 50%; margin-right: 5px; animation: blink 1.2s infinite; }
+        @keyframes blink { 50% { opacity: 0.2; } }
+
+        .exam-panel { flex: 1; background: white; padding: 25px 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .question { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 6px; }
+        textarea { width: 100%; height: 60px; box-sizing: border-box; padding: 8px; border-radius: 5px; border: 1px solid #ccc; }
+        .submit-btn { display: block; width: 100%; padding: 12px; background: #c0392b; color: white; border: none; border-radius: 5px; font-size: 16px; text-decoration: none; text-align: center; margin-top: 20px; }
+        #eventLog { font-size: 12px; color: #555; margin-top: 15px; max-height: 100px; overflow-y: auto; border-top: 1px solid #eee; padding-top: 10px; }
+
+        /* Toast warning popups */
+        #toastContainer { position: fixed; top: 70px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: #c0392b; color: white; padding: 14px 20px; border-radius: 8px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.25); opacity: 0; transform: translateX(30px); transition: all 0.3s ease; max-width: 280px; }
+        .toast.show { opacity: 1; transform: translateX(0); }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <span>Candidate: {{ name }}</span>
+        <div class="right">
+            <span class="warning-counter" id="warningCounter">⚠ Warnings: 0</span>
+            <span class="badge"><span class="rec-dot"></span>Monitoring Active</span>
+        </div>
+    </div>
+
+    <div class="face-banner" id="faceBanner">⚠ Your face is not visible on camera! Please stay in frame - this is being recorded.</div>
+
+    <div id="toastContainer"></div>
+
+    <div class="container">
+        <div class="video-panel">
+            <img id="liveVideo" src="/video_feed" alt="Live camera feed">
+            <p>Your camera is visible to you so you know monitoring is active. Please stay in frame and do not switch tabs.</p>
+        </div>
+
+        <div class="exam-panel">
+            <h2>Sample Exam</h2>
+
+            <div class="question">
+                <p><b>Q1.</b> Explain the difference between a list and a tuple in Python.</p>
+                <textarea placeholder="Type your answer..."></textarea>
+            </div>
+            <div class="question">
+                <p><b>Q2.</b> What is the time complexity of binary search?</p>
+                <textarea placeholder="Type your answer..."></textarea>
+            </div>
+
+            <a class="submit-btn" href="/session/submit">Submit Exam</a>
+
+            <div id="eventLog"></div>
+        </div>
+    </div>
+
+    <script>
+        let warningCount = 0;
+
+        function incrementWarningCount() {
+            warningCount++;
+            document.getElementById("warningCounter").textContent = "⚠ Warnings: " + warningCount;
+        }
+
+        function showToast(message) {
+            const container = document.getElementById("toastContainer");
+            const toast = document.createElement("div");
+            toast.className = "toast";
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => toast.classList.add("show"), 10);
+            setTimeout(() => {
+                toast.classList.remove("show");
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function logEvent(eventType) {
+            fetch("/log_event", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ event_type: eventType })
+            });
+
+            const p = document.createElement("p");
+            p.textContent = new Date().toLocaleTimeString() + " - " + eventType.replace("_", " ") + " detected";
+            document.getElementById("eventLog").prepend(p);
+
+            incrementWarningCount();
+
+            if (eventType === "tab_switch") {
+                showToast("⚠ Tab switch detected! This has been recorded.");
+            } else if (eventType === "focus_loss") {
+                showToast("⚠ You clicked away from the exam window! This has been recorded.");
+            }
+        }
+
+        document.addEventListener("visibilitychange", function () {
+            if (document.hidden) {
+                logEvent("tab_switch");
+            }
+        });
+
+        window.addEventListener("blur", function () {
+            logEvent("focus_loss");
+        });
+
+        // Poll the server every 2 seconds to check if the face is currently
+        // visible, and show a persistent warning banner while it's missing.
+        let faceWarningActive = false;
+
+        function pollFaceStatus() {
+            fetch("/face_status")
+                .then(res => res.json())
+                .then(data => {
+                    const banner = document.getElementById("faceBanner");
+                    if (!data.face_present && data.missing_seconds >= 3) {
+                        banner.style.display = "block";
+                        if (!faceWarningActive) {
+                            faceWarningActive = true;
+                            incrementWarningCount();
+                            showToast("⚠ Face not detected! Please stay visible.");
+                        }
+                    } else {
+                        banner.style.display = "none";
+                        faceWarningActive = false;
+                    }
+                })
+                .catch(() => {});
+        }
+
+        setInterval(pollFaceStatus, 2000);
+    </script>
+</body>
+</html>

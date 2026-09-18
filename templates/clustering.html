@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ExamGuard - Behavioral Clustering</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 30px; }
+        .wrap { max-width: 950px; margin: 0 auto; background: white; padding: 25px 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; }
+        .subtitle { color: #666; font-size: 14px; margin-top: -8px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        th { background: #f8f9fa; color: #555; }
+        .badge { padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .low-activity { background: #d4edda; color: #155724; }
+        .moderate-activity { background: #fff3cd; color: #856404; }
+        .high-activity { background: #f8d7da; color: #c0392b; }
+        .links { margin-top: 20px; }
+        .links a { color: #2c7be5; text-decoration: none; }
+        .empty { color: #888; text-align: center; padding: 30px 0; }
+        .note { background: #f0f4ff; border-left: 4px solid #2c7be5; padding: 12px 16px; font-size: 13px; color: #333; margin-bottom: 20px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h2>Behavioral Clustering (K-Means)</h2>
+        <p class="subtitle">Candidates grouped by overall exam behavior - tab switches, focus loss, and face-absent time</p>
+
+        <div class="note">
+            This uses K-Means, an unsupervised machine learning algorithm, to group all candidates into
+            clusters of similar behavior - rather than judging each candidate against a fixed threshold alone.
+        </div>
+
+        {% if data %}
+        <table>
+            <tr>
+                <th>Candidate</th>
+                <th>Email</th>
+                <th>Tab Switches</th>
+                <th>Focus Loss</th>
+                <th>Face Absent (s)</th>
+                <th>Cluster</th>
+            </tr>
+            {% for row in data %}
+            <tr>
+                <td>{{ row.name }}</td>
+                <td>{{ row.email }}</td>
+                <td>{{ row.tab_switch_count }}</td>
+                <td>{{ row.focus_loss_count }}</td>
+                <td>{{ row.face_absent_seconds }}</td>
+                <td>
+                    <span class="badge {{ 'low-activity' if row.cluster_label == 'Low Activity' else ('moderate-activity' if row.cluster_label == 'Moderate Activity' else 'high-activity') }}">
+                        {{ row.cluster_label }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p class="empty">Not enough submitted sessions yet to form meaningful clusters. At least 3 submitted sessions are needed.</p>
+        {% endif %}
+
+        <div class="links">
+            <a href="/analytics">← Back to Analytics</a>
+        </div>
+    </div>
+</body>
+</html>

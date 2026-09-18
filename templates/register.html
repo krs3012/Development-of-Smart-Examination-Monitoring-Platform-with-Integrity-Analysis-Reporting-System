@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ExamGuard - Register</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .card { background: white; padding: 30px 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 340px; }
+        h2 { text-align: center; color: #2c3e50; }
+        input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #2c7be5; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #1a5fc0; }
+        button:disabled { background: #aaa; cursor: not-allowed; }
+        p { text-align: center; font-size: 14px; }
+        .msg { color: #c0392b; text-align: center; }
+        .note { font-size: 12px; color: #777; text-align: center; }
+        .photo-box { width: 100%; height: 200px; background: #000; border-radius: 8px; overflow: hidden; margin: 10px 0; }
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .capture-btn { background: #27ae60; }
+        .capture-btn:hover { background: #1e8449; }
+        .status-ok { color: #155724; text-align: center; font-size: 13px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Candidate Registration</h2>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for m in messages %}<p class="msg">{{ m }}</p>{% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="photo-box">
+            <img id="livePreview" src="/video_feed" alt="Live camera preview">
+        </div>
+        <button type="button" id="captureBtn" class="capture-btn">Capture Photo</button>
+        <p id="captureStatus" class="status-ok" style="display:none;">✓ Photo captured</p>
+
+        <form method="POST" id="registerForm">
+            <input type="hidden" name="pending_photo" id="pendingPhoto">
+            <input type="text" name="name" placeholder="Full Name" required>
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <p class="note">Please click "Capture Photo" above before registering.</p>
+            <button type="submit">Register</button>
+        </form>
+        <p>Already registered? <a href="/login">Login here</a></p>
+    </div>
+
+    <script>
+        const captureBtn = document.getElementById("captureBtn");
+        const livePreview = document.getElementById("livePreview");
+        const pendingPhotoInput = document.getElementById("pendingPhoto");
+        const captureStatus = document.getElementById("captureStatus");
+
+        captureBtn.addEventListener("click", function () {
+            if (captureBtn.textContent === "Retake Photo") {
+                // Go back to live view so the candidate can reposition before capturing again
+                livePreview.src = "/video_feed";
+                pendingPhotoInput.value = "";
+                captureStatus.style.display = "none";
+                captureBtn.textContent = "Capture Photo";
+                return;
+            }
+
+            captureBtn.disabled = true;
+            captureBtn.textContent = "Capturing...";
+
+            fetch("/capture_photo_ajax", { method: "POST" })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.ok) {
+                        // Freeze the preview on the actual captured photo, not the live stream
+                        livePreview.src = "/static/photos/" + data.filename + "?t=" + Date.now();
+                        pendingPhotoInput.value = data.filename;
+                        captureStatus.style.display = "block";
+                        captureBtn.textContent = "Retake Photo";
+                    } else {
+                        alert("Could not capture photo. Please check your camera.");
+                        captureBtn.textContent = "Capture Photo";
+                    }
+                    captureBtn.disabled = false;
+                })
+                .catch(() => {
+                    alert("Could not reach the server to capture photo.");
+                    captureBtn.disabled = false;
+                    captureBtn.textContent = "Capture Photo";
+                });
+        });
+    </script>
+</body>
+</html>

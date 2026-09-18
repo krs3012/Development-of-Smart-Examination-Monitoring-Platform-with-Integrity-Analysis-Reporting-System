@@ -1,0 +1,29 @@
+# Python generated files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local database and generated data
+exam.db
+*.sqlite
+*.sqlite3
+
+# Generated candidate data and evidence
+static/photos/*
+static/evidence/*
+
+# Runtime/log files
+*.log
+
+# IDE/editor files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

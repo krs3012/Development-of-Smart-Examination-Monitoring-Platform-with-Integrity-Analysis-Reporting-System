@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ExamGuard - Analytics</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 30px; }
+        .wrap { max-width: 900px; margin: 0 auto; background: white; padding: 25px 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        th { background: #f8f9fa; color: #555; }
+        .bar-bg { background: #eee; border-radius: 10px; overflow: hidden; width: 120px; height: 14px; display: inline-block; vertical-align: middle; }
+        .bar-fill { height: 100%; }
+        .badge { padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .low { background: #d4edda; color: #155724; }
+        .medium { background: #fff3cd; color: #856404; }
+        .high { background: #f8d7da; color: #c0392b; }
+        .links { margin-top: 20px; }
+        .links a { color: #2c7be5; text-decoration: none; margin-right: 20px; }
+        .empty { color: #888; text-align: center; padding: 30px 0; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h2>Analytics - All Submitted Sessions</h2>
+        <p style="font-size:13px; color:#888; margin-top:-10px;">
+            Logged in as invigilator <a href="{{ url_for('logout') }}" style="color:#c0392b;">(Logout)</a>
+        </p>
+
+        {% if rows %}
+        <table>
+            <tr>
+                <th>Candidate</th>
+                <th>Email</th>
+                <th>Score</th>
+                <th>Risk</th>
+                <th>Submitted At</th>
+                <th>Report</th>
+            </tr>
+            {% for row in rows %}
+            <tr>
+                <td>{{ row.name }}</td>
+                <td>{{ row.email }}</td>
+                <td>
+                    <span class="bar-bg">
+                        <span class="bar-fill" style="width:{{ row.integrity_score or 0 }}%; background:{{ '#28a745' if row.risk_level == 'Low' else ('#ffc107' if row.risk_level == 'Medium' else '#dc3545') }};"></span>
+                    </span>
+                    {{ row.integrity_score }}/100
+                </td>
+                <td>
+                    <span class="badge {{ 'low' if row.risk_level == 'Low' else ('medium' if row.risk_level == 'Medium' else 'high') }}">
+                        {{ row.risk_level }}
+                    </span>
+                </td>
+                <td>{{ row.submitted_at.split('.')[0] if row.submitted_at else '-' }}</td>
+                <td><a href="/report/{{ row.session_id }}" style="color:#d35400; text-decoration:none;">View →</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p class="empty">No submitted sessions yet.</p>
+        {% endif %}
+
+        <div class="links">
+            <a href="/dashboard">← Back to Dashboard</a>
+            <a href="/clustering">View Behavioral Clusters →</a>
+            <a href="/export/csv">⬇ Export CSV</a>
+            <a href="/export/json">⬇ Export JSON</a>
+        </div>
+    </div>
+</body>
+</html>
