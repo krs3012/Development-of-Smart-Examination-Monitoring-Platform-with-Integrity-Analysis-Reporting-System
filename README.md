@@ -51,7 +51,7 @@ examguard/
     analytics.html, clustering.html, evidence.html, report.html,
     invigilator_login.html
 docs/
-  Project_Documentation.pdf
+  Project_Documentation.md
   Agile_Template_ExamGuard.xlsx
   Defect_Tracker_ExamGuard.xlsx
   Unit_Test_Plan_ExamGuard.xlsx
